@@ -1,4 +1,4 @@
-package app.naga.audio_transcription
+package app.naga.audiotranscription
 
 import org.junit.Test
 

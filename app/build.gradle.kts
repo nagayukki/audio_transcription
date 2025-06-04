@@ -7,7 +7,7 @@ plugins {
 }
 
 android {
-    namespace = "app.naga.audio_transcription"
+    namespace = "app.naga.audiotranscription"
     compileSdk = 35
 
     defaultConfig {

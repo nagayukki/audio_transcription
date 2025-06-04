@@ -1,4 +1,4 @@
-package app.naga.audio_transcription
+package app.naga.audiotranscription
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

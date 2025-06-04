@@ -1,4 +1,4 @@
-package app.naga.audio_transcription.ui.theme
+package app.naga.audiotranscription.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
