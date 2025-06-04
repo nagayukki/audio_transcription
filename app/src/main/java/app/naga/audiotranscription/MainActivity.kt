@@ -4,7 +4,6 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import app.naga.audiotranscription.ui.AudioTranscriptionApp
 import app.naga.audiotranscription.ui.theme.AudioTranscriptionTheme
 
 class MainActivity : ComponentActivity() {
