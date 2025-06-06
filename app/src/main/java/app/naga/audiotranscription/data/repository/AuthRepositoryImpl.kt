@@ -20,7 +20,7 @@ class AuthRepositoryImpl @Inject constructor(
         val clientSecretParam = clientSecret.toRequestBody("text/plain".toMediaTypeOrNull())
         val scope = (
                 "https://apis.mimi.fd.ai/auth/asr/http-api-service;" +
-                        "https://apis.mimi.fd.ai/auth/asr/websocket-api-service;"
+                        "https://apis.mimi.fd.ai/auth/asr/websocket-api-service"
 //                        "https://apis.mimi.fd.ai/auth/nict-asr/http-api-service;" +
 //                        "https://apis.mimi.fd.ai/auth/nict-asr/websocket-api-service;" +
 //                        "https://apis.mimi.fd.ai/auth/nict-tts/http-api-service;" +
