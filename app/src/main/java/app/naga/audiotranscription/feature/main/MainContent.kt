@@ -22,15 +22,49 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.naga.audiotranscription.feature.voice.VoiceStore
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberPermissionState
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.compose.runtime.collectAsState
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import app.naga.audiotranscription.feature.voice.VoiceAction
+import com.google.accompanist.permissions.isGranted
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainContent(
     voiceStore: VoiceStore = viewModel()
 ) {
+    val activity = LocalActivity.current
+    val recordAudioPermissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO) { isGranted ->
+        if (isGranted) {
+            return@rememberPermissionState
+        }
+        if (ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.RECORD_AUDIO)) {
+            // 設定画面
+        }
+    }
+    val voiceState = voiceStore.state.collectAsState()
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
-            MainBottomBar()
+            MainBottomBar(
+              onTapRecordButton = {
+                  if (recordAudioPermissionState.status.isGranted) {
+                      if (voiceState.value.isRecording) {
+                          voiceStore.sendAction(VoiceAction.StopRecording)
+                      } else {
+                          voiceStore.sendAction(VoiceAction.StartRecording)
+                      }
+                  } else {
+                      recordAudioPermissionState.launchPermissionRequest()
+                  }
+              }
+            )
         }
     ) { innerPadding ->
         MainBody(
@@ -60,15 +94,21 @@ fun MainBody(modifier: Modifier = Modifier) {
     }
 }
 
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainBottomBar() {
+fun MainBottomBar(
+  onTapRecordButton: () -> Unit
+) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        Button(onClick = { /* TODO: 音声録音処理 */ }, modifier = Modifier.size(72.dp)) {
+        Button(
+            onClick = onTapRecordButton,
+            modifier = Modifier.size(72.dp)
+        ) {
             Icon(
                 imageVector = Icons.Filled.Add,
                 contentDescription = null,
