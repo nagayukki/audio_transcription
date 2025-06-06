@@ -54,12 +54,13 @@ class VoiceStore @Inject constructor(
     private fun start() {
         _state.value = _state.value.copy(isRecording = true)
         audioRecorder.startRecording { onBufferReady ->
-            Log.i("HOEG",">>>> ${onBufferReady.size}")
+            voiceTranscriber.transcribe(onBufferReady)
         }
     }
 
     private fun stop() {
         audioRecorder.stopRecording()
+        voiceTranscriber.dispose()
         _state.value = _state.value.copy(isRecording = false)
     }
 }
