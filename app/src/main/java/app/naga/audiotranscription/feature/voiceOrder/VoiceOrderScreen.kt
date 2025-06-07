@@ -10,6 +10,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.naga.audiotranscription.domain.model.VoiceOrder
+import androidx.compose.ui.res.stringResource
+import app.naga.audiotranscription.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,7 +29,7 @@ fun VoiceOrderScreen(
             TopAppBar(
                 modifier = Modifier.statusBarsPadding(),
                 title = {
-                    Text("音声コマンド一覧")
+                    Text(stringResource(R.string.voice_order_title))
                 },
             )
         }
@@ -38,7 +40,7 @@ fun VoiceOrderScreen(
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
-                    label = { Text("コマンド文") },
+                    label = { Text(stringResource(R.string.voice_order_command_label)) },
                     modifier = Modifier.weight(1f)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -48,7 +50,7 @@ fun VoiceOrderScreen(
                     }
                     DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
                         DropdownMenuItem(
-                            text = { Text("Dialog") },
+                            text = { Text(stringResource(R.string.voice_order_action_dialog)) },
                             onClick = {
                                 selectedAction = VoiceOrder.Action.Dialog
                                 expanded = false
@@ -64,7 +66,7 @@ fun VoiceOrderScreen(
                             text = ""
                         }
                     }
-                ) { Text("追加") }
+                ) { Text(stringResource(R.string.common_add)) }
             }
             Spacer(modifier = Modifier.height(24.dp))
             LazyColumn(modifier = Modifier.weight(1f)) {
@@ -84,7 +86,7 @@ fun VoiceOrderScreen(
                                 Text(order.action.name(), style = MaterialTheme.typography.bodySmall)
                             }
                             IconButton(onClick = { onDelete(order) }) {
-                                Icon(Icons.Default.Delete, contentDescription = "削除")
+                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.common_delete))
                             }
                         }
                     }
