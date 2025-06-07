@@ -10,11 +10,26 @@ import okhttp3.logging.HttpLoggingInterceptor
 import okio.ByteString
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+
+sealed class MimiTranscriptionEvent {
+    data class Transcription(val response: MimiTranscriptionResponse) : MimiTranscriptionEvent()
+    data class Error(val throwable: Throwable) : MimiTranscriptionEvent()
+    data class Closed(val code: Int, val reason: String) : MimiTranscriptionEvent()
+    object Open : MimiTranscriptionEvent()
+}
 
 @Singleton
 class MimiWebSocketClient @Inject constructor(): WebSocketListener() {
     private lateinit var webSocket: WebSocket
     private var client: OkHttpClient? = null
+
+    private val _transcriptionFlow = MutableSharedFlow<MimiTranscriptionEvent>(
+        extraBufferCapacity = 1
+    )
+    val transcriptionFlow: SharedFlow<MimiTranscriptionEvent> get() = _transcriptionFlow
+
     fun isConnected(): Boolean {
         return client != null
     }
@@ -29,14 +44,15 @@ class MimiWebSocketClient @Inject constructor(): WebSocketListener() {
             })
             .build()
         this.client = client
-        Log.i(TAG,"accessToken: $accessToken")
+
+        // TODO: 切り替える仕組みを作成したい
         val request = Request.Builder()
             .url("wss://service.mimi.fd.ai")
             .addHeader("accept", "application/json")
             .addHeader("Authorization", "Bearer $accessToken")
             .addHeader("Content-Type", "audio/x-pcm;bit=16;rate=16000;channels=1")
             .addHeader("x-mimi-process", "asr")
-            .addHeader("x-mimi-lid-options", "lang=ja|en")
+            .addHeader("x-mimi-lid-options", "lang=ja")
             .build()
 
         webSocket = client.newWebSocket(request, this)
@@ -51,7 +67,6 @@ class MimiWebSocketClient @Inject constructor(): WebSocketListener() {
     }
 
     fun sendBinary(data: ByteString) {
-//        Log.i(TAG, "sendBinary: ${data.hex()}")
         webSocket.send(data)
     }
 
@@ -62,34 +77,57 @@ class MimiWebSocketClient @Inject constructor(): WebSocketListener() {
     }
 
     override fun onOpen(webSocket: WebSocket, response: Response) {
-        Log.i(TAG,"WebSocket opened: ${response.message}")
+        Log.d(TAG,"WebSocket opened: ${response.message}")
+        _transcriptionFlow.tryEmit(MimiTranscriptionEvent.Open)
     }
 
     override fun onMessage(webSocket: WebSocket, text: String) {
-        Log.i(TAG,"Received message: $text")
+        Log.d(TAG,"Received message: $text")
+        val gson = com.google.gson.Gson()
+        try {
+            val response = gson.fromJson(text, MimiTranscriptionResponse::class.java)
+            _transcriptionFlow.tryEmit(MimiTranscriptionEvent.Transcription(response))
+        } catch (e: Exception) {
+            _transcriptionFlow.tryEmit(MimiTranscriptionEvent.Error(e))
+        }
     }
 
     override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-        Log.i(TAG,"Received bytes: ${bytes.hex()}")
+        Log.d(TAG,"Received bytes: ${bytes.hex()}")
     }
 
     override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-        Log.i(TAG,"Closing: $code / $reason")
+        Log.d(TAG,"Closing: $code / $reason")
         close(code, reason)
     }
 
     override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-        Log.i(TAG,"Closed: $code / $reason")
+        Log.d(TAG,"Closed: $code / $reason")
+        _transcriptionFlow.tryEmit(MimiTranscriptionEvent.Closed(code, reason))
     }
 
     override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-        Log.i(TAG,"Error: ${t.message}")
+        Log.d(TAG,"Error: ${t.message}")
         response?.let {
-            Log.i(TAG,"Response: ${it.code} ${it.message}")
+            Log.d(TAG,"Response: ${it.code} ${it.message}")
         }
+        _transcriptionFlow.tryEmit(MimiTranscriptionEvent.Error(t))
     }
 
     companion object {
         private const val TAG = "MimiWebSocketClient"
     }
 }
+
+data class MimiTranscriptionItem(
+    val pronunciation: String,
+    val result: String,
+    val time: List<Int>
+)
+
+data class MimiTranscriptionResponse(
+    val response: List<MimiTranscriptionItem>,
+    val session_id: String,
+    val status: String,
+    val type: String
+)

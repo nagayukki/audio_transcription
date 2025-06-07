@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import app.naga.audiotranscription.feature.voice.VoiceAction
+import app.naga.audiotranscription.feature.voice.VoiceUiState
 import com.google.accompanist.permissions.isGranted
 
 @OptIn(ExperimentalPermissionsApi::class)
@@ -48,7 +49,6 @@ fun MainContent(
         }
     }
     val voiceState = voiceStore.state.collectAsState()
-
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -71,12 +71,16 @@ fun MainContent(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize(),
+            voiceState = voiceState.value
         )
     }
 }
 
 @Composable
-fun MainBody(modifier: Modifier = Modifier) {
+fun MainBody(
+    modifier: Modifier = Modifier,
+    voiceState: VoiceUiState
+) {
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.Top,
@@ -89,7 +93,7 @@ fun MainBody(modifier: Modifier = Modifier) {
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Text(text = "Transcribed text will appear here")
+            Text(text = voiceState.result?.text ?: "No result")
         }
     }
 }

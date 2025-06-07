@@ -11,6 +11,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.naga.audiotranscription.data.audio.AudioRecorder
+import app.naga.audiotranscription.domain.transcription.VoiceTranscribeEvent
 import app.naga.audiotranscription.domain.transcription.VoiceTranscriber
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 import javax.inject.Inject
 
 @HiltViewModel
@@ -38,6 +40,12 @@ class VoiceStore @Inject constructor(
         viewModelScope.launch {
             voiceTranscriber.initialize()
         }
+        bind()
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        voiceTranscriber.dispose()
     }
 
     fun sendAction(action: VoiceAction) {
@@ -52,7 +60,7 @@ class VoiceStore @Inject constructor(
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private fun start() {
-        _state.value = _state.value.copy(isRecording = true)
+        _state.value = _state.value.copy(isRecording = true, result = null)
         audioRecorder.startRecording { onBufferReady ->
             voiceTranscriber.transcribe(onBufferReady)
         }
@@ -62,6 +70,32 @@ class VoiceStore @Inject constructor(
         audioRecorder.stopRecording()
         voiceTranscriber.dispose()
         _state.value = _state.value.copy(isRecording = false)
+    }
+
+    private fun bind() {
+        viewModelScope.launch {
+            voiceTranscriber.transcribeEvent.collect {
+                Log.d("Transcription", it.toString())
+                when (it) {
+                    VoiceTranscribeEvent.Finish -> {}
+                    VoiceTranscribeEvent.Error -> _effect.emit(VoiceUiEffect.Error("Error"))
+                    VoiceTranscribeEvent.Start -> {}
+                    is VoiceTranscribeEvent.Transcription -> {
+                        val state = _state.value
+                        // TODO: mimiから返ってくるのでそれをつかうのもよいが時間あれば
+                        val result = state.result ?: VoiceResult(
+                            sessionId = UUID.randomUUID().toString(),
+                            text = "",
+                        )
+                        _state.value = state.copy(
+                            result = result.copy(
+                                text = it.text
+                            )
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
