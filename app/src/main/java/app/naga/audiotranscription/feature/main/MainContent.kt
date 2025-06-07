@@ -26,10 +26,14 @@ import com.google.accompanist.permissions.rememberPermissionState
 import android.Manifest
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.core.app.ActivityCompat
@@ -42,12 +46,50 @@ import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import androidx.compose.runtime.*
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.rememberNavController
+import dagger.hilt.android.lifecycle.HiltViewModel
+import androidx.hilt.navigation.compose.hiltViewModel
+import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderScreen
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MainContent(
-    voiceStore: VoiceStore = viewModel(),
-    orderStore: VoiceOrderStore = viewModel()
+fun MainContent() {
+    val navController = rememberNavController()
+    val voiceStore: VoiceStore = hiltViewModel()
+    val orderStore: VoiceOrderStore = hiltViewModel()
+
+    NavHost(navController = navController, startDestination = "main") {
+        composable("main") {
+            MainScreen(
+                navController = navController,
+                voiceStore = voiceStore,
+                orderStore = orderStore
+            )
+        }
+        composable("voiceOrder") {
+            val state by orderStore.state.collectAsState()
+            VoiceOrderScreen(
+                state = state,
+                onAdd = { text, action ->
+                    orderStore.sendAction(VoiceOrderAction.Insert(text, action))
+                },
+                onDelete = { order ->
+                    orderStore.sendAction(VoiceOrderAction.Delete(order))
+                }
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalPermissionsApi::class, ExperimentalMaterial3Api::class)
+@Composable
+fun MainScreen(
+    navController: NavHostController,
+    voiceStore: VoiceStore,
+    orderStore: VoiceOrderStore
 ) {
     val activity = LocalActivity.current
     val recordAudioPermissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO) { isGranted ->
@@ -87,6 +129,17 @@ fun MainContent(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        topBar = {
+            TopAppBar(
+                modifier = Modifier.statusBarsPadding(),
+                title = { },
+                actions = {
+                    TextButton(onClick = { navController.navigate("voiceOrder") }) {
+                        Text("コマンド管理")
+                    }
+                }
+            )
+        },
         bottomBar = {
             MainBottomBar(
               onTapRecordButton = {

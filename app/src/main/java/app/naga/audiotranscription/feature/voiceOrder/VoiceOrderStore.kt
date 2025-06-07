@@ -42,11 +42,17 @@ class VoiceOrderStore @Inject constructor(
             is VoiceOrderAction.Insert -> {
                 viewModelScope.launch {
                     voiceOrderRepository.addVoiceOrder(VoiceOrder(text = action.text, action = action.action))
+                    _state.value = _state.value.copy(
+                        orders = voiceOrderRepository.getVoiceOrders()
+                    )
                 }
             }
             is VoiceOrderAction.Delete -> {
                 viewModelScope.launch {
                     voiceOrderRepository.deleteVoiceOrder(action.order)
+                    _state.value = _state.value.copy(
+                        orders = voiceOrderRepository.getVoiceOrders()
+                    )
                 }
             }
             is VoiceOrderAction.HandleText -> {
