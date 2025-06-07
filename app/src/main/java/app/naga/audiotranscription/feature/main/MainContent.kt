@@ -25,11 +25,8 @@ import app.naga.audiotranscription.feature.voice.VoiceStore
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import android.Manifest
-import android.content.pm.PackageManager
 import androidx.compose.runtime.collectAsState
-import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import app.naga.audiotranscription.feature.voice.VoiceAction
 import app.naga.audiotranscription.feature.voice.VoiceUiState
 import com.google.accompanist.permissions.isGranted
@@ -37,7 +34,8 @@ import com.google.accompanist.permissions.isGranted
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainContent(
-    voiceStore: VoiceStore = viewModel()
+    voiceStore: VoiceStore = viewModel(),
+    orderStore: VoiceStore = viewModel()
 ) {
     val activity = LocalActivity.current
     val recordAudioPermissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO) { isGranted ->
