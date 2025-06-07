@@ -1,3 +1,18 @@
 <resources>
     <string name="app_name">audio_transcription</string>
+
+    <!-- Common strings -->
+    <string name="common_ok">OK</string>
+    <string name="common_add">追加</string>
+    <string name="common_delete">削除</string>
+
+    <!-- MainContent screen strings -->
+    <string name="main_command_management">コマンド管理</string>
+    <string name="main_notice_title">お知らせ</string>
+    <string name="main_no_result">No result</string>
+
+    <!-- VoiceOrderScreen strings -->
+    <string name="voice_order_title">音声コマンド一覧</string>
+    <string name="voice_order_command_label">コマンド文</string>
+    <string name="voice_order_action_dialog">Dialog</string>
 </resources>

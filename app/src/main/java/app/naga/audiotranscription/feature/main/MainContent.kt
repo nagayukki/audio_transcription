@@ -44,6 +44,8 @@ import app.naga.audiotranscription.feature.voice.VoiceUiState
 import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderAction
 import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderStore
 import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderUiEffect
+import androidx.compose.ui.res.stringResource
+import app.naga.audiotranscription.R
 import com.google.accompanist.permissions.isGranted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -137,7 +139,7 @@ fun MainScreen(
                 title = { },
                 actions = {
                     TextButton(onClick = { navController.navigate("voiceOrder") }) {
-                        Text("コマンド管理")
+                        Text(stringResource(R.string.main_command_management))
                     }
                 }
             )
@@ -172,10 +174,10 @@ fun MainScreen(
             onDismissRequest = { dialogMessage = null },
             confirmButton = {
                 TextButton(onClick = { dialogMessage = null }) {
-                    Text("OK")
+                    Text(stringResource(R.string.common_ok))
                 }
             },
-            title = { Text("お知らせ") },
+            title = { Text(stringResource(R.string.main_notice_title)) },
             text = { Text(dialogMessage ?: "") }
         )
     }
@@ -199,7 +201,7 @@ fun MainBody(
                 .padding(16.dp),
             contentAlignment = Alignment.TopStart
         ) {
-            Text(text = voiceState.result?.text ?: "No result")
+            Text(text = voiceState.result?.text ?: stringResource(R.string.main_no_result))
         }
     }
 }
