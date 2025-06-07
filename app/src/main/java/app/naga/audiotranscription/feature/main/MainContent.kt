@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -25,17 +24,30 @@ import app.naga.audiotranscription.feature.voice.VoiceStore
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberPermissionState
 import android.Manifest
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.scrollable
+import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.core.app.ActivityCompat
 import app.naga.audiotranscription.feature.voice.VoiceAction
 import app.naga.audiotranscription.feature.voice.VoiceUiState
+import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderAction
+import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderStore
+import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderUiEffect
 import com.google.accompanist.permissions.isGranted
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import androidx.compose.runtime.*
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainContent(
     voiceStore: VoiceStore = viewModel(),
-    orderStore: VoiceStore = viewModel()
+    orderStore: VoiceOrderStore = viewModel()
 ) {
     val activity = LocalActivity.current
     val recordAudioPermissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO) { isGranted ->
@@ -47,6 +59,32 @@ fun MainContent(
         }
     }
     val voiceState = voiceStore.state.collectAsState()
+
+    // Dialogの表示状態
+    var dialogMessage by remember { mutableStateOf<String?>(null) }
+
+    // TODO: タイミング
+    LaunchedEffect(Unit) {
+        voiceStore.state.map { it.result }
+            .distinctUntilChanged()
+            .collect { voiceResult ->
+            val result = voiceResult ?: return@collect
+            orderStore.sendAction(
+                VoiceOrderAction.HandleText(result.sessionId, result.text)
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        orderStore.effect.collect {
+            when (it) {
+                is VoiceOrderUiEffect.Dialog -> {
+                    dialogMessage = it.message
+                }
+            }
+        }
+    }
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         bottomBar = {
@@ -72,6 +110,19 @@ fun MainContent(
             voiceState = voiceState.value
         )
     }
+
+    if (dialogMessage != null) {
+        AlertDialog(
+            onDismissRequest = { dialogMessage = null },
+            confirmButton = {
+                TextButton(onClick = { dialogMessage = null }) {
+                    Text("OK")
+                }
+            },
+            title = { Text("お知らせ") },
+            text = { Text(dialogMessage ?: "") }
+        )
+    }
 }
 
 @Composable
@@ -80,16 +131,17 @@ fun MainBody(
     voiceState: VoiceUiState
 ) {
     Column(
-        modifier = modifier,
+        modifier = modifier
+            .scrollable(state = rememberScrollState(), orientation = Orientation.Vertical),
         verticalArrangement = Arrangement.Top,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.Start
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .wrapContentHeight()
                 .padding(16.dp),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.TopStart
         ) {
             Text(text = voiceState.result?.text ?: "No result")
         }

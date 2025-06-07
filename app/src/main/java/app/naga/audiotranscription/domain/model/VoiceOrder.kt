@@ -6,7 +6,7 @@ data class VoiceOrder(
     val id: Int? = null,
     val text: String,
     val action: Action,
-    val createAt: Date
+    val createAt: Date = Date()
 ) {
 
     sealed class Action {

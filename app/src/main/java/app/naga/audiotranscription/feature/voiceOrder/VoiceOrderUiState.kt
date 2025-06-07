@@ -7,4 +7,5 @@ data class VoiceOrderUiState(
 )
 
 sealed class VoiceOrderUiEffect {
+    data class Dialog(val message: String) : VoiceOrderUiEffect()
 }
