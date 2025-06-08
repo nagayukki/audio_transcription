@@ -2,13 +2,11 @@ package app.naga.audiotranscription.feature.voice
 
 import android.Manifest
 import android.app.Application
-import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.naga.audiotranscription.data.audio.AudioRecorder
 import app.naga.audiotranscription.domain.transcription.VoiceTranscribeEvent
@@ -37,15 +35,12 @@ class VoiceStore @Inject constructor(
     val effect: SharedFlow<VoiceUiEffect> = _effect.asSharedFlow()
 
     init {
-        viewModelScope.launch {
-            voiceTranscriber.initialize()
-        }
         bind()
     }
 
     override fun onCleared() {
         super.onCleared()
-        voiceTranscriber.dispose()
+        stop()
     }
 
     fun sendAction(action: VoiceAction) {
@@ -60,16 +55,43 @@ class VoiceStore @Inject constructor(
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     private fun start() {
-        _state.value = _state.value.copy(isRecording = true, result = null)
-        audioRecorder.startRecording { onBufferReady ->
-            voiceTranscriber.transcribe(onBufferReady)
+        if (_state.value.recordState != RecordState.Stopped) {
+            return
+        }
+        viewModelScope.launch {
+            _state.value = _state.value.copy(recordState = RecordState.Loading)
+            val result = runCatching {
+                voiceTranscriber.initialize()
+            }
+            when {
+                result.isSuccess -> {
+                    val value = result.getOrNull()
+                    if (value == false) {
+                        _state.value = _state.value.copy(recordState = RecordState.Stopped)
+                        // TODO: エラーの詳細
+                        _effect.emit(VoiceUiEffect.Error("Error1"))
+                        return@launch
+                    }
+                }
+                result.isFailure -> {
+                    val error = result.exceptionOrNull()
+                    _state.value = _state.value.copy(recordState = RecordState.Stopped)
+                    // TODO: エラーの詳細
+                    _effect.emit(VoiceUiEffect.Error(error?.message ?: "Error2"))
+                    return@launch
+                }
+            }
+            _state.value = _state.value.copy(recordState = RecordState.Started, result = null)
+            audioRecorder.startRecording { onBufferReady ->
+                voiceTranscriber.transcribe(onBufferReady)
+            }
         }
     }
 
     private fun stop() {
         audioRecorder.stopRecording()
         voiceTranscriber.dispose()
-        _state.value = _state.value.copy(isRecording = false)
+        _state.value = _state.value.copy(recordState = RecordState.Stopped)
     }
 
     private fun bind() {
@@ -78,7 +100,11 @@ class VoiceStore @Inject constructor(
                 Log.d("Transcription", it.toString())
                 when (it) {
                     VoiceTranscribeEvent.Finish -> {}
-                    VoiceTranscribeEvent.Error -> _effect.emit(VoiceUiEffect.Error("Error"))
+                    VoiceTranscribeEvent.Error -> {
+                        // TODO: エラーの詳細
+                        _effect.emit(VoiceUiEffect.Error("Error3"))
+                        stop()
+                    }
                     VoiceTranscribeEvent.Start -> {}
                     is VoiceTranscribeEvent.Transcription -> {
                         val state = _state.value

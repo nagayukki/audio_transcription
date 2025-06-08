@@ -32,8 +32,11 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.LaunchedEffect
@@ -56,7 +59,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import dagger.hilt.android.lifecycle.HiltViewModel
 import androidx.hilt.navigation.compose.hiltViewModel
+import app.naga.audiotranscription.feature.voice.RecordState
+import app.naga.audiotranscription.feature.voice.VoiceUiEffect
 import app.naga.audiotranscription.feature.voiceOrder.VoiceOrderScreen
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
@@ -95,6 +102,7 @@ fun MainScreen(
     voiceStore: VoiceStore,
     orderStore: VoiceOrderStore
 ) {
+    val snackbarHostState = remember { SnackbarHostState() }
     val activity = LocalActivity.current
     val recordAudioPermissionState = rememberPermissionState(Manifest.permission.RECORD_AUDIO) { isGranted ->
         if (isGranted) {
@@ -122,6 +130,19 @@ fun MainScreen(
     }
 
     LaunchedEffect(Unit) {
+        voiceStore.effect.collect {
+            when (it) {
+                is VoiceUiEffect.Error -> {
+                    snackbarHostState.showSnackbar(
+                        message = it.message,
+                        withDismissAction = true,
+                    )
+                }
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
         orderStore.effect.collect {
             when (it) {
                 is VoiceOrderUiEffect.Dialog -> {
@@ -133,6 +154,7 @@ fun MainScreen(
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             TopAppBar(
                 modifier = Modifier.statusBarsPadding(),
@@ -146,7 +168,7 @@ fun MainScreen(
         },
         bottomBar = {
             MainBottomBar(
-                isRecording = voiceState.value.isRecording,
+                recordState = voiceState.value.recordState,
                 onTapRecordButton = {
                   if (recordAudioPermissionState.status.isGranted) {
                       if (voiceState.value.isRecording) {
@@ -206,10 +228,9 @@ fun MainBody(
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun MainBottomBar(
-    isRecording: Boolean = false,
+    recordState: RecordState,
     onTapRecordButton: () -> Unit
 ) {
     Box(
@@ -223,10 +244,10 @@ fun MainBottomBar(
             modifier = Modifier.size(72.dp)
         ) {
             Icon(
-                imageVector = if (isRecording) {
-                    Icons.Filled.Close
-                } else {
-                    Icons.Filled.PlayArrow
+                imageVector = when (recordState) {
+                    is RecordState.Started -> Icons.Filled.Close
+                    is RecordState.Stopped -> Icons.Filled.PlayArrow
+                    is RecordState.Loading -> Icons.Filled.Refresh
                 },
                 contentDescription = null,
                 modifier = Modifier.size(36.dp)

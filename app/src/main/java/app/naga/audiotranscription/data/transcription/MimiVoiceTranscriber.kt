@@ -8,6 +8,8 @@ import app.naga.audiotranscription.domain.repository.AuthRepository
 import app.naga.audiotranscription.domain.transcription.VoiceTranscribeEvent
 import app.naga.audiotranscription.domain.transcription.VoiceTranscriber
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import okio.ByteString
 import javax.inject.Inject
@@ -18,7 +20,6 @@ class MimiVoiceTranscriber @Inject constructor(
     private val authRepository: AuthRepository,
     private val mimiWebSocketClient: MimiWebSocketClient
 ) : VoiceTranscriber {
-    private var accessToken: AccessToken? = null
 
     override val transcribeEvent: Flow<VoiceTranscribeEvent> get() {
         return mimiWebSocketClient.transcriptionFlow.map {
@@ -35,17 +36,26 @@ class MimiVoiceTranscriber @Inject constructor(
     }
 
     override suspend fun initialize(): Boolean {
-        if (accessToken != null) return true
-        accessToken = runCatching { authRepository.fetchAccessToken() }
+        val accessToken = runCatching { authRepository.fetchAccessToken() }
             .getOrNull()
-        return accessToken != null
+        val token = accessToken ?: return false
+        if (mimiWebSocketClient.isConnected()) {
+            mimiWebSocketClient.disconnect()
+        }
+        mimiWebSocketClient.connect(token.accessToken)
+        val result = transcribeEvent
+            .map { event ->
+                when (event) {
+                    is VoiceTranscribeEvent.Start -> event
+                    else -> null
+                }
+            }
+            .filterNotNull()
+            .first()
+        return result == VoiceTranscribeEvent.Start
     }
 
     override fun transcribe(data: ByteArray) {
-        val token = accessToken ?: return
-        if (!mimiWebSocketClient.isConnected()) {
-            mimiWebSocketClient.connect(token.accessToken)
-        }
         val byteString: ByteString = ByteString.of(*data)
         mimiWebSocketClient.sendBinary(byteString)
     }
