@@ -3,6 +3,7 @@
 
     <!-- Common strings -->
     <string name="common_ok">OK</string>
+    <string name="common_cancel">キャンセル</string>
     <string name="common_add">追加</string>
     <string name="common_delete">削除</string>
 
@@ -15,4 +16,7 @@
     <string name="voice_order_title">音声コマンド一覧</string>
     <string name="voice_order_command_label">コマンド文</string>
     <string name="voice_order_action_dialog">Dialog</string>
+
+    <string name="permission_alert_title">パーミッションが必要です</string>
+    <string name="permission_alert_message">この機能を利用するには、録音の権限を許可してください</string>
 </resources>
