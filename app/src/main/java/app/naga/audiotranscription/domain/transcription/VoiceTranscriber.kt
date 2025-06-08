@@ -13,5 +13,5 @@ sealed class VoiceTranscribeEvent {
     data class Transcription(val text: String) : VoiceTranscribeEvent()
     object Start : VoiceTranscribeEvent()
     object Finish : VoiceTranscribeEvent()
-    object Error : VoiceTranscribeEvent()
+    data class Error(val throwable: Throwable) : VoiceTranscribeEvent()
 }

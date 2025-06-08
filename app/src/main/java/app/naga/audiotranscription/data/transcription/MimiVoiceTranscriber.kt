@@ -25,7 +25,7 @@ class MimiVoiceTranscriber @Inject constructor(
         return mimiWebSocketClient.transcriptionFlow.map {
             when (it) {
                 is MimiTranscriptionEvent.Closed -> VoiceTranscribeEvent.Finish
-                is MimiTranscriptionEvent.Error -> VoiceTranscribeEvent.Error
+                is MimiTranscriptionEvent.Error -> VoiceTranscribeEvent.Error(it.throwable)
                 MimiTranscriptionEvent.Open -> VoiceTranscribeEvent.Start
                 is MimiTranscriptionEvent.Transcription -> {
                     val text = convert(it.response)
@@ -36,9 +36,8 @@ class MimiVoiceTranscriber @Inject constructor(
     }
 
     override suspend fun initialize(): Boolean {
-        val accessToken = runCatching { authRepository.fetchAccessToken() }
-            .getOrNull()
-        val token = accessToken ?: return false
+        val token = runCatching { authRepository.fetchAccessToken() }
+            .getOrThrow()
         if (mimiWebSocketClient.isConnected()) {
             mimiWebSocketClient.disconnect()
         }

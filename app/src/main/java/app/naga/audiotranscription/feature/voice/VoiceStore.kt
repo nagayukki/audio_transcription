@@ -68,16 +68,14 @@ class VoiceStore @Inject constructor(
                     val value = result.getOrNull()
                     if (value == false) {
                         _state.value = _state.value.copy(recordState = RecordState.Stopped)
-                        // TODO: エラーの詳細
-                        _effect.emit(VoiceUiEffect.Error("Error1"))
+                        _effect.emit(VoiceUiEffect.Error("Unknown Error, Please try again(100)"))
                         return@launch
                     }
                 }
                 result.isFailure -> {
                     val error = result.exceptionOrNull()
                     _state.value = _state.value.copy(recordState = RecordState.Stopped)
-                    // TODO: エラーの詳細
-                    _effect.emit(VoiceUiEffect.Error(error?.message ?: "Error2"))
+                    _effect.emit(VoiceUiEffect.Error(error?.message ?: "Unknown Error, Please try again(101)"))
                     return@launch
                 }
             }
@@ -104,9 +102,8 @@ class VoiceStore @Inject constructor(
                             stop()
                         }
                     }
-                    VoiceTranscribeEvent.Error -> {
-                        // TODO: エラーの詳細
-                        _effect.emit(VoiceUiEffect.Error("Error3"))
+                    is VoiceTranscribeEvent.Error -> {
+                        _effect.emit(VoiceUiEffect.Error(it.throwable.message ?: "Unknown Error, Stop recording(102)"))
                         stop()
                     }
                     VoiceTranscribeEvent.Start -> {}
