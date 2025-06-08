@@ -99,7 +99,11 @@ class VoiceStore @Inject constructor(
             voiceTranscriber.transcribeEvent.collect {
                 Log.d("Transcription", it.toString())
                 when (it) {
-                    VoiceTranscribeEvent.Finish -> {}
+                    VoiceTranscribeEvent.Finish -> {
+                        if (audioRecorder.isRecording) {
+                            stop()
+                        }
+                    }
                     VoiceTranscribeEvent.Error -> {
                         // TODO: エラーの詳細
                         _effect.emit(VoiceUiEffect.Error("Error3"))

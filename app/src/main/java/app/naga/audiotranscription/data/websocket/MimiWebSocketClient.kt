@@ -45,14 +45,21 @@ class MimiWebSocketClient @Inject constructor(): WebSocketListener() {
             .build()
         this.client = client
 
-        // TODO: 切り替える仕組みを作成したい
+        // TODO: 切り替える仕組みを作成
+        // FYI: https://mimi.readme.io/reference/mimi-asr
+        // https://mimi.readme.io/reference/mimi-asr-powered-by-nict
+        // 戻りの形式に対応してないのでasrのみ
         val request = Request.Builder()
             .url("wss://service.mimi.fd.ai")
             .addHeader("accept", "application/json")
             .addHeader("Authorization", "Bearer $accessToken")
-            .addHeader("Content-Type", "audio/x-pcm;bit=16;rate=16000;channels=1")
+            // asr
             .addHeader("x-mimi-process", "asr")
-            .addHeader("x-mimi-lid-options", "lang=ja")
+            // nict-asr
+//            .addHeader("Content-Type", "audio/x-pcm;bit=16;rate=16000;channels=1")
+//            .addHeader("x-mimi-process", "nict-asr")
+//            .addHeader("x-mimi-input-language", "ja")
+//            .addHeader("x-mimi-nict-asr-options", "response_format=v2;progressive=false;temporary=true;temporary_interval=1500")
             .build()
 
         webSocket = client.newWebSocket(request, this)

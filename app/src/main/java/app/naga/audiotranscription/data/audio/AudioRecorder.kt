@@ -11,7 +11,9 @@ import javax.inject.Singleton
 @Singleton
 class AudioRecorder @Inject constructor() {
     private var audioRecord: AudioRecord? = null
-    private var isRecording = false
+    var isRecording = false
+        private set
+
 
     @RequiresPermission(Manifest.permission.RECORD_AUDIO)
     fun startRecording(onBufferReady: (ByteArray) -> Unit) {
